@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AIChatMesh.Client/AIChatMesh.Client.csproj" />
+    <Project Path="src/AIChatMesh.Server/AIChatMesh.Server.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AIChatMesh.Server.Tests/AIChatMesh.Server.Tests.csproj" />
+  </Folder>
+</Solution>

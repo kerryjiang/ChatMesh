@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:ios="clr-namespace:Microsoft.Maui.Controls.PlatformConfiguration.iOSSpecific;assembly=Microsoft.Maui.Controls"
+             xmlns:vm="clr-namespace:AIChatMesh.Client.ViewModels"
+             xmlns:models="clr-namespace:AIChatMesh.Client.Models"
+             x:Class="AIChatMesh.Client.Pages.ChatPage"
+             x:DataType="vm:ChatPageViewModel"
+             Shell.NavBarIsVisible="False"
+             ios:Page.SafeAreaEdges="All"
+             Title="Chat">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <!-- Status bar with different background color -->
+        <HorizontalStackLayout Grid.Row="0"
+                BackgroundColor="#FF025687"
+                Spacing="0"
+                FlowDirection="RightToLeft">
+            <Button ImageSource="settings.png"
+                    FlowDirection="LeftToRight"
+                    Text="Settings"
+                    Command="{Binding OpenSettingsCommand}"
+                    HeightRequest="36"
+                    Padding="8,0"
+                    BackgroundColor="Transparent"
+                    TextColor="White"/>
+            <Button ImageSource="connect.png"
+                    Text="Connect"
+                    FlowDirection="LeftToRight"
+                    Command="{Binding ConnectCommand}"
+                    IsVisible="{Binding IsNotConnected}"
+                    HeightRequest="36"
+                    Padding="8,0"
+                    BackgroundColor="Transparent"
+                    TextColor="White"/>
+            <Button ImageSource="disconnect.png"
+                    Text="Disconnect"
+                    FlowDirection="LeftToRight"
+                    Command="{Binding DisconnectCommand}"
+                    IsVisible="{Binding IsConnected}"
+                    HeightRequest="36"
+                    Padding="8,0"
+                    BackgroundColor="Transparent"
+                    TextColor="White"/>
+        </HorizontalStackLayout>
+
+        <!-- Connected state: Username on left -->
+        <Label Grid.Column="0"
+               Grid.Row="1"
+               Text="{Binding StatusText}"
+               Padding="8,8,8,8"
+               BackgroundColor="#FF2EA9F0"
+               TextColor="White"
+               FontAttributes="Bold"
+               FontSize="16"
+               VerticalOptions="Center"/>
+
+        <!-- Chat messages -->
+        <CollectionView x:Name="MessagesView"
+                        Grid.Row="2"
+                        ItemsSource="{Binding Messages}"
+                        ItemsLayout="VerticalList"
+                        SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:ChatEntry">
+                    <VerticalStackLayout Padding="5,2">
+                        <Label Text="{Binding DisplayText}"
+                               FontSize="14"
+                               TextColor="{Binding IsSystem, Converter={StaticResource BoolToColorConverter}}" />
+                    </VerticalStackLayout>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Message input -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Padding="10,10,10,10" ColumnSpacing="10">
+            <Entry Placeholder="Type a message..."
+                   Text="{Binding MessageText}"
+                   IsEnabled="{Binding IsConnected}"
+                   ReturnCommand="{Binding SendCommand}" />
+            <Button Grid.Column="1"
+                    Text="Send"
+                    Command="{Binding SendCommand}" />
+        </Grid>
+    </Grid>
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <local:BoolToColorConverter x:Key="BoolToColorConverter"
+                                         xmlns:local="clr-namespace:AIChatMesh.Client.Converters" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+</ContentPage>
