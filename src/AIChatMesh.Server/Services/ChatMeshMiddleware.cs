@@ -26,13 +26,25 @@ public class ChatMeshMiddleware : MiddlewareBase
 
     public override async ValueTask<bool> RegisterSession(IAppSession session)
     {
-        if (session is not WebSocketSession wsSession)
+        session.Connected += OnSesssionOpenedAsync;
+        return true;
+    }
+
+    private async ValueTask OnSesssionOpenedAsync(object sender, EventArgs eventArgs)
+    {
+        var session = sender as WebSocketSession;
+
+        if (session is null)
         {
-            _logger.LogWarning("Non-WebSocket session attempted to connect: {SessionId}", session.SessionID);
-            return false;
+            _logger.LogError("Connected session is not a WebSocketSession");
+            return;
         }
 
-        var path = wsSession.HttpHeader?.Path ?? string.Empty;
+        session.Connected -= OnSesssionOpenedAsync;
+
+        var connection = (session as IAppSession).Connection;
+
+        var path = session.Path ?? string.Empty;
         var queryParams = ParseQueryString(path);
 
         queryParams.TryGetValue("username", out var username);
@@ -43,11 +55,11 @@ public class ChatMeshMiddleware : MiddlewareBase
         if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(token) || string.IsNullOrEmpty(peerUsername))
         {
             _logger.LogWarning("Connection rejected: missing credentials from {RemoteEndPoint}", session.RemoteEndPoint);
-            await wsSession.CloseAsync(CloseReason.ProtocolError, "Missing credentials", session.Connection.ConnectionToken);
-            return false;
+            await session.CloseAsync(CloseReason.ProtocolError, "Missing credentials");
+            return;
         }
 
-        var headerItems = GetHeaderItems(wsSession.HttpHeader?.Items);
+        var headerItems = GetHeaderItems(session.HttpHeader?.Items);
         var hostName = headerItems.TryGetValue("Host", out var hostHeader) ? hostHeader : string.Empty;
         var authenticationRequest = new AuthenticationRequest
         {
@@ -58,29 +70,33 @@ public class ChatMeshMiddleware : MiddlewareBase
             HeaderItems = headerItems
         };
 
-        if (!await _authenticationService.AuthenticateAsync(authenticationRequest, session.Connection.ConnectionToken))
+        if (!await _authenticationService.AuthenticateAsync(authenticationRequest, connection.ConnectionToken))
         {
             _logger.LogWarning("Connection rejected: invalid token for user '{Username}'", username);
-            await wsSession.CloseAsync(CloseReason.ProtocolError, "Invalid credentials", session.Connection.ConnectionToken);
-            return false;
+            await session.CloseAsync(CloseReason.ProtocolError, "Invalid credentials");
+            return;
         }
 
         var sessionTopic = SessionTopic.CreatePeerSessionTopic(username, peerUsername);
         sessionTopic.LastMessageId = long.TryParse(lastMessageIdStr, out var lastMsgId) ? lastMsgId : null;
 
-        wsSession.DataContext = sessionTopic;
+        session.DataContext = sessionTopic;
 
-        await wsSession.SendAsync(MessageSerializer.Serialize(new SystemMessagePayload
+        await session.SendAsync(MessageSerializer.Serialize(new SystemMessagePayload
         {
             Content = $"Welcome to AIChatMesh, {username}!"
         }));
 
         // Notify the peer that this user joined
-        await _topicMessageProvider.SaveMessageAsync(sessionTopic.TopicId, new UserJoinedPayload { Username = username }, session.Connection.ConnectionToken);
+        await _topicMessageProvider.SaveMessageAsync(sessionTopic.TopicId, new UserJoinedPayload { Username = username }, connection.ConnectionToken);
 
-        _ = StartSessionChatMeshAsync(wsSession);
-        
-        return true;
+        _ = StartSessionChatMeshAsync(session).ContinueWith(t =>
+        {
+            if (t.IsFaulted)
+            {
+                _logger.LogError(t.Exception, "Error in session chat mesh loop for session {SessionId}", session.SessionID);
+            }
+        });
     }
 
     public override async ValueTask<bool> UnRegisterSession(IAppSession session)

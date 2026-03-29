@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\AIChatMesh.Client\AIChatMesh.Client.csproj" />
     <ProjectReference Include="..\..\src\AIChatMesh.Server\AIChatMesh.Server.csproj" />
     <ProjectReference Include="..\..\src\AIChatMesh.Contract\AIChatMesh.Contract.csproj" />
   </ItemGroup>
