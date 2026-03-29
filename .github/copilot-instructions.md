@@ -1,11 +1,11 @@
-# AIChatMesh – Project Guidelines
+# ChatMesh – Project Guidelines
 
 ## Overview
 
-AIChatMesh is a real-time chat application with two .NET 10 projects:
+ChatMesh is a real-time chat application with two .NET 10 projects:
 
-- **AIChatMesh.Server** – WebSocket chat server built on SuperSocket.WebSocket
-- **AIChatMesh.Client** – .NET MAUI client with chat UI and settings page
+- **ChatMesh.Server** – WebSocket chat server built on SuperSocket.WebSocket
+- **ChatMesh.Client** – .NET MAUI client with chat UI and settings page
 
 ## Architecture
 
@@ -24,14 +24,14 @@ AIChatMesh is a real-time chat application with two .NET 10 projects:
 
 ```bash
 # Restore and build the entire solution
-dotnet build AIChatMesh.sln
+dotnet build ChatMesh.sln
 
 # Run the server
-dotnet run --project src/AIChatMesh.Server
+dotnet run --project src/ChatMesh.Server
 
 # Run MAUI client (desktop)
-dotnet build src/AIChatMesh.Client -f net10.0-maccatalyst   # macOS
-dotnet build src/AIChatMesh.Client -f net10.0-windows10.0.19041.0  # Windows
+dotnet build src/ChatMesh.Client -f net10.0-maccatalyst   # macOS
+dotnet build src/ChatMesh.Client -f net10.0-windows10.0.19041.0  # Windows
 
 # Run tests
 dotnet test
@@ -40,12 +40,12 @@ dotnet test
 ## Project Structure (planned)
 
 ```
-AIChatMesh.sln
+ChatMesh.sln
 src/
-  AIChatMesh.Server/       # SuperSocket.WebSocket server
-  AIChatMesh.Client/       # .NET MAUI client
+  ChatMesh.Server/       # SuperSocket.WebSocket server
+  ChatMesh.Client/       # .NET MAUI client
 tests/
-  AIChatMesh.Server.Tests/
+  ChatMesh.Server.Tests/
 ```
 
 ## Key Dependencies

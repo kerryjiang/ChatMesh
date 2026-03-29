@@ -6,10 +6,10 @@
     "configurations": [
         
         {
-            "name": "C#: AIChatMesh.Client [iOS (Build only)]",
+            "name": "C#: ChatMesh.Client [iOS (Build only)]",
             "type": "dotnet",
             "request": "launch",
-            "projectPath": "${workspaceFolder}/src/AIChatMesh.Client/AIChatMesh.Client.csproj",
+            "projectPath": "${workspaceFolder}/src/ChatMesh.Client/ChatMesh.Client.csproj",
             "launchConfigurationId": "onlybuildios"
         }
     ]

@@ -416,3 +416,7 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+
+# Local configuration file for development environment, which may contain sensitive information such as connection strings, API keys, etc. This file should not be checked into version control to protect sensitive data and allow developers to have their own local configurations without affecting others.
+appsettings.Development.json

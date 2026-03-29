@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ChatMesh.Client/ChatMesh.Client.csproj" />
+    <Project Path="src/ChatMesh.MauiClient/ChatMesh.MauiClient.csproj" />
+    <Project Path="src/ChatMesh.Server/ChatMesh.Server.csproj" />
+    <Project Path="src/ChatMesh.Server.Abstractions/ChatMesh.Server.Abstractions.csproj" />
+    <Project Path="src/ChatMesh.Contract/ChatMesh.Contract.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ChatMesh.Server.Tests/ChatMesh.Server.Tests.csproj" />
+  </Folder>
+</Solution>
