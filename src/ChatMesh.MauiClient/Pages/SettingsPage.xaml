@@ -28,6 +28,11 @@
             <Entry x:Name="PeerUsernameEntry"
                    Placeholder="Enter peer username" />
 
+            <Label Text="Message Encryption Key" />
+            <Entry x:Name="MessageEncryptionKeyEntry"
+                   Placeholder="Optional shared AES key"
+                   IsPassword="True" />
+
             <Button Text="Save"
                     Clicked="OnSaveClicked"
                     Margin="0,20,0,0" />

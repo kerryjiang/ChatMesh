@@ -45,6 +45,7 @@ public partial class ChatPageViewModel : ObservableObject, IDisposable
         var username = Preferences.Default.Get("Username", string.Empty);
         var token = Preferences.Default.Get("AuthToken", string.Empty);
         var peerUsername = Preferences.Default.Get("PeerUsername", string.Empty);
+        var messageEncryptionKey = Preferences.Default.Get("MessageEncryptionKey", string.Empty);
 
         if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(username)
             || string.IsNullOrWhiteSpace(token) || string.IsNullOrWhiteSpace(peerUsername))
@@ -59,7 +60,7 @@ public partial class ChatPageViewModel : ObservableObject, IDisposable
         try
         {
             CanConnect = false;
-            await _chatService.ConnectAsync(host, username, token, peerUsername);
+            await _chatService.ConnectAsync(host, username, token, peerUsername, messageEncryptionKey);
         }
         catch
         {

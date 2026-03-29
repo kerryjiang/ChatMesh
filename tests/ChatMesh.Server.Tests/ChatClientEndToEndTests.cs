@@ -97,6 +97,39 @@ public class ChatClientEndToEndTests
     }
 
     [Fact]
+    public async Task SendMessageAsync_WithEncryptionKey_DecryptsForSenderAndPeer()
+    {
+        await using var host = await ChatMeshTestHost.StartAsync();
+        using var aliceClient = new ChatClient(NullLogger<ChatClient>.Instance);
+        using var bobClient = new ChatClient(NullLogger<ChatClient>.Instance);
+        const string encryptionKey = "shared-secret-key";
+        const string content = "hello-encrypted";
+
+        await aliceClient.ConnectAsync(host.HostAddress, "alice", ChatMeshTestHost.AliceToken, "bob", encryptionKey);
+        await bobClient.ConnectAsync(host.HostAddress, "bob", ChatMeshTestHost.BobToken, "alice", encryptionKey);
+
+        var aliceMessageTask = WaitForMessageAsync(
+            aliceClient,
+            static message => message is ChatMessagePayload { Sender: "alice", Content: content, Encypted: true },
+            TimeSpan.FromSeconds(5));
+
+        var bobMessageTask = WaitForMessageAsync(
+            bobClient,
+            static message => message is ChatMessagePayload { Sender: "alice", Content: content, Encypted: true },
+            TimeSpan.FromSeconds(5));
+
+        await aliceClient.SendMessageAsync(content);
+
+        var aliceMessage = Assert.IsType<ChatMessagePayload>(await aliceMessageTask);
+        var bobMessage = Assert.IsType<ChatMessagePayload>(await bobMessageTask);
+
+        Assert.Equal(content, aliceMessage.Content);
+        Assert.Equal(content, bobMessage.Content);
+        Assert.True(aliceMessage.Encypted);
+        Assert.True(bobMessage.Encypted);
+    }
+
+    [Fact]
     public async Task DisconnectAsync_PeerReceivesUserLeftMessage()
     {
         await using var host = await ChatMeshTestHost.StartAsync();

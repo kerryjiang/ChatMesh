@@ -14,6 +14,7 @@ public partial class SettingsPage : ContentPage
         UsernameEntry.Text = Preferences.Default.Get("Username", string.Empty);
         TokenEntry.Text = Preferences.Default.Get("AuthToken", string.Empty);
         PeerUsernameEntry.Text = Preferences.Default.Get("PeerUsername", string.Empty);
+        MessageEncryptionKeyEntry.Text = Preferences.Default.Get("MessageEncryptionKey", string.Empty);
     }
 
     private async void OnSaveClicked(object? sender, EventArgs e)
@@ -22,6 +23,7 @@ public partial class SettingsPage : ContentPage
         var username = UsernameEntry.Text?.Trim() ?? string.Empty;
         var token = TokenEntry.Text ?? string.Empty;
         var peerUsername = PeerUsernameEntry.Text?.Trim() ?? string.Empty;
+        var messageEncryptionKey = MessageEncryptionKeyEntry.Text?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(username))
         {
@@ -45,6 +47,7 @@ public partial class SettingsPage : ContentPage
         Preferences.Default.Set("Username", username);
         Preferences.Default.Set("AuthToken", token);
         Preferences.Default.Set("PeerUsername", peerUsername);
+        Preferences.Default.Set("MessageEncryptionKey", messageEncryptionKey);
 
         SavedLabel.Text = "Settings saved!";
         SavedLabel.IsVisible = true;

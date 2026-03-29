@@ -10,6 +10,7 @@ ChatMesh is structured around targeted conversations routed through a central We
 - Clients authenticate with a username and token.
 - Each client connects with a `peerUsername`, and the server only routes that conversation's messages.
 - Message payloads are JSON serialized and include system, chat, join, and leave events.
+- Chat messages can optionally be encrypted end-to-end between two peers with a shared message encryption key.
 - The same routing model can be used for user chat, AI agent dispatching, or hybrid user/agent communication.
 - You can deploy your own private communication server and keep agent traffic within your own environment.
 
@@ -26,6 +27,7 @@ ChatMesh is structured around targeted conversations routed through a central We
 - Safer private communication model because the server can run entirely under your own control.
 - No dependency on public messaging services such as Telegram, Discord, or WeChat.
 - Simple peer-based routing that is easier to reason about for agent dispatch flows.
+- Optional shared-key message encryption for private peer-to-peer message content.
 - Shared contracts and reusable client code to keep agent messaging implementations consistent.
 
 ## Projects
@@ -85,8 +87,10 @@ The reusable client is `ChatMesh.Client.ChatClient`.
 
 - Connects to `ws://` or `wss://` endpoints.
 - Sends `username`, `token`, `peerUsername`, and optional `lastMessageId` as query parameters.
+- Accepts an optional message encryption key during connect.
 - Raises `MessageReceived` and `ConnectionStateChanged` events.
 - Tracks the last received message ID to support reconnect without replaying already-read chat messages.
+- Encrypts `ChatMessagePayload.Content` before send and decrypts it after receive when a shared message encryption key is configured.
 - Can be used as a transport client for AI agents exchanging addressed messages over the ChatMesh server.
 
 ### MAUI App
@@ -94,7 +98,7 @@ The reusable client is `ChatMesh.Client.ChatClient`.
 The MAUI app exposes a simple operator-facing chat experience.
 
 - `ChatPage` shows connection status, message history, and send controls.
-- `SettingsPage` stores server host, username, token, and peer username.
+- `SettingsPage` stores server host, username, token, peer username, and an optional message encryption key.
 - `AppShell` launches directly into the chat page.
 
 ## Authentication
@@ -116,6 +120,17 @@ Example auth entry shape:
   "HashedToken": "..."
 }
 ```
+
+## Message Encryption
+
+ChatMesh supports optional peer message encryption for `ChatMessagePayload`.
+
+- Two peers can share the same message encryption key.
+- If a key is configured, outgoing chat message content is encrypted in the client before transport.
+- If the receiving peer has the same key configured, the content is decrypted after receipt.
+- The `ChatMessagePayload.Encypted` flag indicates that the payload content was transported in encrypted form.
+
+This is useful when you want private message content between peers while still running your own private ChatMesh server.
 
 ## Prerequisites
 
@@ -179,6 +194,7 @@ dotnet run --project src/ChatMesh.Server/ChatMesh.Server.csproj
    - Username
    - Authentication token
    - Peer username
+  - Optional message encryption key shared with the peer
 4. Connect from two users, two agents, or a user and an agent whose usernames reference each other as peers.
 5. Exchange messages through the server.
 
@@ -188,6 +204,7 @@ ChatMesh is intended to be usable as a lightweight dispatch layer for AI agents.
 
 - Assign each agent a unique username and token.
 - Set `peerUsername` to define the dispatch target.
+- Optionally share a message encryption key between peers when private message content is required.
 - Reuse the shared contract project so payload formats remain consistent.
 - Use the client library for agent transports or build custom clients on the same message protocol.
 
@@ -203,6 +220,8 @@ Shared payloads live in `src/ChatMesh.Contract`.
 - `UserLeftPayload`
 
 Serialization is handled by `MessageSerializer`.
+
+For chat payloads, `ChatMessagePayload` also includes an `Encypted` flag to indicate encrypted message transport.
 
 ## Token Hash Helper
 
