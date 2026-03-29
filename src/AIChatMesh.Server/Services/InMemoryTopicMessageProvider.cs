@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using AIChatMesh.Contract;
+using AIChatMesh.Server.Abstractions;
 
 namespace AIChatMesh.Server.Services;
 
@@ -9,6 +10,8 @@ public class InMemoryTopicMessageProvider : ITopicMessageProvider
     private readonly ConcurrentDictionary<int, List<MessagePayload>> _messagesByTopic = new();
 
     private readonly ConcurrentDictionary<int, List<TaskCompletionSource<MessagePayload>>> _waitingClientsByTopic = new();
+
+    private readonly ConcurrentDictionary<int, long> _lastMessageIdByTopic = new();
 
     private async Task StartMessageWaiting(int topicId, CancellationToken cancellationToken)
     {
@@ -19,52 +22,41 @@ public class InMemoryTopicMessageProvider : ITopicMessageProvider
 
     public async IAsyncEnumerable<MessagePayload> GetMessageStreamAsync(int topicId, long? lastReceivedMessageId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var currentLastMessageId = lastReceivedMessageId;
+
         while (!cancellationToken.IsCancellationRequested)
         {
-            if (!_messagesByTopic.TryGetValue(topicId, out var messages) || messages == null ||!messages.Any())
+            if (!_messagesByTopic.TryGetValue(topicId, out var messages) || messages is null || !messages.Any())
             {
                 await StartMessageWaiting(topicId, cancellationToken);
+                continue;
             }
 
-            if (lastReceivedMessageId == null)
+            var newMessages = messages
+                .Where(message => currentLastMessageId is null || message.Id > currentLastMessageId.Value)
+                .ToArray();
+
+            if (newMessages.Length == 0)
             {
-                foreach (var message in messages!)
-                {
-                    if (cancellationToken.IsCancellationRequested)
-                        yield break;
-
-                    yield return message;
-                }
-
                 await StartMessageWaiting(topicId, cancellationToken);
+                continue;
             }
-            else
+
+            foreach (var message in newMessages)
             {
-                var fromIndex = -1;
+                if (cancellationToken.IsCancellationRequested)
+                    yield break;
 
-                for (var i = messages!.Count - 1; i >= 0; i--)
-                {
-                    if (messages[i].Id <= lastReceivedMessageId.Value)
-                    {
-                        fromIndex = i;
-                        break;
-                    }
-                }
-
-                var newMessages = messages.Slice(fromIndex + 1, messages.Count - fromIndex - 1);
-
-                foreach (var message in newMessages)
-                {
-                    yield return message;
-                }
-
-                await StartMessageWaiting(topicId, cancellationToken);
+                yield return message;
+                currentLastMessageId = message.Id;
             }
         }
     }
 
     public Task SaveMessageAsync(int topicId, MessagePayload message, CancellationToken cancellationToken = default)
     {
+        message.Id = _lastMessageIdByTopic.AddOrUpdate(topicId, 1, static (_, current) => current + 1);
+
         if (!_messagesByTopic.TryGetValue(topicId, out var messages))
         {
             _messagesByTopic.TryAdd(topicId, new List<MessagePayload>());
@@ -75,8 +67,10 @@ public class InMemoryTopicMessageProvider : ITopicMessageProvider
 
         _waitingClientsByTopic.TryRemove(topicId, out var waitingClients);
 
-        if (waitingClients != null)        {
-            foreach (var client in waitingClients)            {
+        if (waitingClients != null)
+        {
+            foreach (var client in waitingClients)
+            {
                 client.TrySetResult(message);
             }
         }

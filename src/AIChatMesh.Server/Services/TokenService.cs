@@ -1,11 +1,12 @@
 using System.Security.Cryptography;
 using System.Text;
+using AIChatMesh.Server.Abstractions;
 using AIChatMesh.Server.Models;
 using Microsoft.Extensions.Options;
 
 namespace AIChatMesh.Server.Services;
 
-public sealed class TokenService
+public sealed class TokenService : ITokenService
 {
     private readonly IReadOnlyDictionary<string, AuthUserConfig> _users;
 

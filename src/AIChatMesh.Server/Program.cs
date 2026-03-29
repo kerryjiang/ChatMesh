@@ -1,4 +1,5 @@
 ﻿using AIChatMesh.Contract;
+using AIChatMesh.Server.Abstractions;
 using AIChatMesh.Server.Models;
 using AIChatMesh.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,7 +37,7 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.Configure<AuthConfig>(context.Configuration.GetSection("Auth"));
-        services.AddSingleton<TokenService>();
+        services.AddSingleton<ITokenService, TokenService>();
         services.AddSingleton<ITopicMessageProvider, InMemoryTopicMessageProvider>();
     })
     .Build();

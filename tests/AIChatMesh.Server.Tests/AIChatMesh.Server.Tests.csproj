@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AIChatMesh.Server\AIChatMesh.Server.csproj" />
-    <ProjectReference Include="..\..\src\AIChatMesh.Core\AIChatMesh.Contract.csproj" />
+    <ProjectReference Include="..\..\src\AIChatMesh.Contract\AIChatMesh.Contract.csproj" />
   </ItemGroup>
 
 </Project>

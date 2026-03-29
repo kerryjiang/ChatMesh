@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AIChatMesh.Server.Abstractions\AIChatMesh.Server.Abstractions.csproj" />
     <ProjectReference Include="..\AIChatMesh.Contract\AIChatMesh.Contract.csproj" />
   </ItemGroup>
 

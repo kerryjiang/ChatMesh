@@ -1,6 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
-using AIChatMesh.Client.Models;
+using AIChatMesh.Contract;
 using Microsoft.Extensions.Logging;
 
 namespace AIChatMesh.Client.Services;
@@ -10,6 +10,8 @@ public sealed class ChatService : IDisposable
     private ClientWebSocket? _webSocket;
     private CancellationTokenSource? _receiveCts;
     private readonly ILogger<ChatService> _logger;
+    private long? _lastReceivedMessageId;
+    private string? _conversationKey;
 
     public event Action<MessagePayload>? MessageReceived;
     public event Action<bool, string>? ConnectionStateChanged;
@@ -29,6 +31,8 @@ public sealed class ChatService : IDisposable
     {
         await DisconnectAsync();
 
+        ResetConversationCursorIfNeeded(host, username, peerUsername);
+
         _webSocket = new ClientWebSocket();
         _receiveCts = new CancellationTokenSource();
 
@@ -37,7 +41,21 @@ public sealed class ChatService : IDisposable
             ? string.Empty
             : "ws://";
 
-        var uri = new Uri($"{scheme}{host}?username={Uri.EscapeDataString(username)}&token={Uri.EscapeDataString(token)}&peerUsername={Uri.EscapeDataString(peerUsername)}");
+        var uriBuilder = new UriBuilder($"{scheme}{host}");
+        var queryParts = new List<string>
+        {
+            $"username={Uri.EscapeDataString(username)}",
+            $"token={Uri.EscapeDataString(token)}",
+            $"peerUsername={Uri.EscapeDataString(peerUsername)}"
+        };
+
+        if (_lastReceivedMessageId is long lastReceivedMessageId)
+        {
+            queryParts.Add($"lastMessageId={lastReceivedMessageId}");
+        }
+
+        uriBuilder.Query = string.Join("&", queryParts);
+        var uri = uriBuilder.Uri;
 
         try
         {
@@ -90,7 +108,6 @@ public sealed class ChatService : IDisposable
                 }
                 catch
                 {
-                    // Best-effort close
                 }
             }
 
@@ -98,7 +115,7 @@ public sealed class ChatService : IDisposable
             _webSocket = null;
         }
 
-        ConnectionStateChanged?.Invoke(false,"Disconnected");
+        ConnectionStateChanged?.Invoke(false, "Disconnected");
     }
 
     private async Task ReceiveLoopAsync(CancellationToken cancellationToken)
@@ -118,7 +135,7 @@ public sealed class ChatService : IDisposable
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        ConnectionStateChanged?.Invoke(false,"Server closed connection");
+                        ConnectionStateChanged?.Invoke(false, "Server closed connection");
                         return;
                     }
 
@@ -134,6 +151,11 @@ public sealed class ChatService : IDisposable
                     if (message is not null)
                     {
                         MessageReceived?.Invoke(message);
+
+                        if (message.Id > 0)
+                        {
+                            _lastReceivedMessageId = message.Id;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -144,12 +166,22 @@ public sealed class ChatService : IDisposable
         }
         catch (OperationCanceledException)
         {
-            // Normal disconnection
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "WebSocket receive error");
             ConnectionStateChanged?.Invoke(false, $"Disconnected: {ex.Message}");
+        }
+    }
+
+    private void ResetConversationCursorIfNeeded(string host, string username, string peerUsername)
+    {
+        var conversationKey = string.Join('|', host.Trim(), username.Trim(), peerUsername.Trim());
+
+        if (!string.Equals(_conversationKey, conversationKey, StringComparison.OrdinalIgnoreCase))
+        {
+            _conversationKey = conversationKey;
+            _lastReceivedMessageId = null;
         }
     }
 

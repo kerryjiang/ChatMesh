@@ -1,4 +1,5 @@
 using AIChatMesh.Contract;
+using AIChatMesh.Server.Abstractions;
 using AIChatMesh.Server.Models;
 using Microsoft.Extensions.Logging;
 using SuperSocket.Server.Abstractions.Middleware;
@@ -12,11 +13,11 @@ public class ChatMeshMiddleware : MiddlewareBase
 {
     private readonly ITopicMessageProvider _topicMessageProvider;
 
-    private readonly TokenService _tokenService;
+    private readonly ITokenService _tokenService;
 
     private readonly ILogger<ChatMeshMiddleware> _logger;
 
-    public ChatMeshMiddleware(ITopicMessageProvider topicMessageProvider, TokenService tokenService, ILogger<ChatMeshMiddleware> logger)
+    public ChatMeshMiddleware(ITopicMessageProvider topicMessageProvider, ITokenService tokenService, ILogger<ChatMeshMiddleware> logger)
     {
         _topicMessageProvider = topicMessageProvider;
         _tokenService = tokenService;
