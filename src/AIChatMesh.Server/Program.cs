@@ -37,7 +37,7 @@ var host = Host.CreateDefaultBuilder(args)
     .ConfigureServices((context, services) =>
     {
         services.Configure<AuthConfig>(context.Configuration.GetSection("Auth"));
-        services.AddSingleton<ITokenService, TokenService>();
+        services.AddSingleton<IAuthenticationService, TokenService>();
         services.AddSingleton<ITopicMessageProvider, InMemoryTopicMessageProvider>();
     })
     .Build();

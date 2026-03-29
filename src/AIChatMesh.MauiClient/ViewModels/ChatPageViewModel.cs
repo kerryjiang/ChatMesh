@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using AIChatMesh.Client.Services;
+using AIChatMesh.Client;
 using AIChatMesh.Contract;
 using AIChatMesh.MauiClient.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,7 +9,7 @@ namespace AIChatMesh.MauiClient.ViewModels;
 
 public partial class ChatPageViewModel : ObservableObject, IDisposable
 {
-    private readonly ChatService _chatService;
+    private readonly ChatClient _chatService;
     private string _currentUsername = string.Empty;
 
     public ObservableCollection<ChatEntry> Messages { get; } = [];
@@ -31,7 +31,7 @@ public partial class ChatPageViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _canConnect = true;
 
-    public ChatPageViewModel(ChatService chatService)
+    public ChatPageViewModel(ChatClient chatService)
     {
         _chatService = chatService;
         _chatService.MessageReceived += OnMessageReceived;

@@ -6,7 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace AIChatMesh.Server.Services;
 
-public sealed class TokenService : ITokenService
+public sealed class TokenService : IAuthenticationService
 {
     private readonly IReadOnlyDictionary<string, AuthUserConfig> _users;
 
@@ -16,16 +16,22 @@ public sealed class TokenService : ITokenService
             .ToDictionary(u => u.Username, u => u, StringComparer.OrdinalIgnoreCase);
     }
 
-    public bool ValidateToken(string username, string token)
+    public Task<bool> AuthenticateAsync(AuthenticationRequest request, CancellationToken cancellationToken = default)
     {
+        var username = request.Username;
+        var token = request.Token;
+
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(token))
+            return Task.FromResult(false);
+
         if (!_users.TryGetValue(username, out var userConfig))
-            return false;
+            return Task.FromResult(false);
 
         var saltBytes = Convert.FromBase64String(userConfig.Salt);
         var computedHash = HashToken(token, saltBytes);
         var storedHash = Convert.FromBase64String(userConfig.HashedToken);
 
-        return CryptographicOperations.FixedTimeEquals(computedHash, storedHash);
+        return Task.FromResult(CryptographicOperations.FixedTimeEquals(computedHash, storedHash));
     }
 
     public static (string Salt, string HashedToken) CreateHash(string token)

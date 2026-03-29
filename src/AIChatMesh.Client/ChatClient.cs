@@ -3,13 +3,13 @@ using System.Text;
 using AIChatMesh.Contract;
 using Microsoft.Extensions.Logging;
 
-namespace AIChatMesh.Client.Services;
+namespace AIChatMesh.Client;
 
-public sealed class ChatService : IDisposable
+public sealed class ChatClient : IDisposable
 {
     private ClientWebSocket? _webSocket;
     private CancellationTokenSource? _receiveCts;
-    private readonly ILogger<ChatService> _logger;
+    private readonly ILogger<ChatClient> _logger;
     private long? _lastReceivedMessageId;
     private string? _conversationKey;
 
@@ -22,7 +22,7 @@ public sealed class ChatService : IDisposable
 
     public string PeerUsername { get; private set; } = string.Empty;
 
-    public ChatService(ILogger<ChatService> logger)
+    public ChatClient(ILogger<ChatClient> logger)
     {
         _logger = logger;
     }

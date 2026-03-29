@@ -1,4 +1,4 @@
-﻿using AIChatMesh.Client.Services;
+﻿using AIChatMesh.Client;
 using AIChatMesh.MauiClient.Pages;
 using AIChatMesh.MauiClient.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -18,7 +18,7 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
 
-		builder.Services.AddSingleton<ChatService>();
+		builder.Services.AddSingleton<ChatClient>();
 		builder.Services.AddTransient<ChatPageViewModel>();
 		builder.Services.AddTransient<ChatPage>();
 		builder.Services.AddTransient<SettingsPage>();

@@ -13,14 +13,14 @@ public class ChatMeshMiddleware : MiddlewareBase
 {
     private readonly ITopicMessageProvider _topicMessageProvider;
 
-    private readonly ITokenService _tokenService;
+    private readonly IAuthenticationService _authenticationService;
 
     private readonly ILogger<ChatMeshMiddleware> _logger;
 
-    public ChatMeshMiddleware(ITopicMessageProvider topicMessageProvider, ITokenService tokenService, ILogger<ChatMeshMiddleware> logger)
+    public ChatMeshMiddleware(ITopicMessageProvider topicMessageProvider, IAuthenticationService authenticationService, ILogger<ChatMeshMiddleware> logger)
     {
         _topicMessageProvider = topicMessageProvider;
-        _tokenService = tokenService;
+        _authenticationService = authenticationService;
         _logger = logger;
     }
 
@@ -47,7 +47,18 @@ public class ChatMeshMiddleware : MiddlewareBase
             return false;
         }
 
-        if (!_tokenService.ValidateToken(username, token))
+        var headerItems = GetHeaderItems(wsSession.HttpHeader?.Items);
+        var hostName = headerItems.TryGetValue("Host", out var hostHeader) ? hostHeader : string.Empty;
+        var authenticationRequest = new AuthenticationRequest
+        {
+            Username = username,
+            Token = token,
+            HostName = hostName,
+            Path = path,
+            HeaderItems = headerItems
+        };
+
+        if (!await _authenticationService.AuthenticateAsync(authenticationRequest, session.Connection.ConnectionToken))
         {
             _logger.LogWarning("Connection rejected: invalid token for user '{Username}'", username);
             await wsSession.CloseAsync(CloseReason.ProtocolError, "Invalid credentials", session.Connection.ConnectionToken);
@@ -174,6 +185,24 @@ public class ChatMeshMiddleware : MiddlewareBase
         }
 
         return result;
+    }
+
+    static IReadOnlyDictionary<string, string> GetHeaderItems(System.Collections.Specialized.NameValueCollection? items)
+    {
+        if (items is null || items.Count == 0)
+            return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var key in items.AllKeys)
+        {
+            if (string.IsNullOrEmpty(key))
+                continue;
+
+            headers[key] = items[key] ?? string.Empty;
+        }
+
+        return headers;
     }
 
 }

@@ -1,3 +1,4 @@
+using AIChatMesh.Server.Abstractions;
 using AIChatMesh.Server.Models;
 using AIChatMesh.Server.Services;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,7 @@ namespace AIChatMesh.Server.Tests;
 public class TokenServiceTests
 {
     [Fact]
-    public void ValidateToken_WithCorrectToken_ReturnsTrue()
+    public async Task AuthenticateAsync_WithCorrectToken_ReturnsTrue()
     {
         var (salt, hash) = TokenService.CreateHash("my-secret-token");
 
@@ -26,11 +27,23 @@ public class TokenServiceTests
 
         var service = new TokenService(config);
 
-        Assert.True(service.ValidateToken("testuser", "my-secret-token"));
+        var authenticated = await service.AuthenticateAsync(new AuthenticationRequest
+        {
+            Username = "testuser",
+            Token = "my-secret-token",
+            HostName = "localhost:4040",
+            Path = "/?username=testuser",
+            HeaderItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Host"] = "localhost:4040"
+            }
+        });
+
+        Assert.True(authenticated);
     }
 
     [Fact]
-    public void ValidateToken_WithWrongToken_ReturnsFalse()
+    public async Task AuthenticateAsync_WithWrongToken_ReturnsFalse()
     {
         var (salt, hash) = TokenService.CreateHash("my-secret-token");
 
@@ -49,11 +62,23 @@ public class TokenServiceTests
 
         var service = new TokenService(config);
 
-        Assert.False(service.ValidateToken("testuser", "wrong-token"));
+        var authenticated = await service.AuthenticateAsync(new AuthenticationRequest
+        {
+            Username = "testuser",
+            Token = "wrong-token",
+            HostName = "localhost:4040",
+            Path = "/?username=testuser",
+            HeaderItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Host"] = "localhost:4040"
+            }
+        });
+
+        Assert.False(authenticated);
     }
 
     [Fact]
-    public void ValidateToken_WithUnknownUser_ReturnsFalse()
+    public async Task AuthenticateAsync_WithUnknownUser_ReturnsFalse()
     {
         var config = Options.Create(new AuthConfig
         {
@@ -70,11 +95,23 @@ public class TokenServiceTests
 
         var service = new TokenService(config);
 
-        Assert.False(service.ValidateToken("unknown", "any-token"));
+        var authenticated = await service.AuthenticateAsync(new AuthenticationRequest
+        {
+            Username = "unknown",
+            Token = "any-token",
+            HostName = "localhost:4040",
+            Path = "/?username=unknown",
+            HeaderItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Host"] = "localhost:4040"
+            }
+        });
+
+        Assert.False(authenticated);
     }
 
     [Fact]
-    public void ValidateToken_IsCaseInsensitive_ForUsername()
+    public async Task AuthenticateAsync_IsCaseInsensitive_ForUsername()
     {
         var (salt, hash) = TokenService.CreateHash("token123");
 
@@ -93,8 +130,32 @@ public class TokenServiceTests
 
         var service = new TokenService(config);
 
-        Assert.True(service.ValidateToken("alice", "token123"));
-        Assert.True(service.ValidateToken("ALICE", "token123"));
+        var authenticatedLowercase = await service.AuthenticateAsync(new AuthenticationRequest
+        {
+            Username = "alice",
+            Token = "token123",
+            HostName = "localhost:4040",
+            Path = "/?username=alice",
+            HeaderItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Host"] = "localhost:4040"
+            }
+        });
+
+        var authenticatedUppercase = await service.AuthenticateAsync(new AuthenticationRequest
+        {
+            Username = "ALICE",
+            Token = "token123",
+            HostName = "localhost:4040",
+            Path = "/?username=ALICE",
+            HeaderItems = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["Host"] = "localhost:4040"
+            }
+        });
+
+        Assert.True(authenticatedLowercase);
+        Assert.True(authenticatedUppercase);
     }
 
     [Fact]
