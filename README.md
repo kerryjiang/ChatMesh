@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/logo.svg" alt="ChatMesh Logo" width="480"/>
+</p>
+
 # ChatMesh
 
 ChatMesh is a real-time messaging system built on .NET for peer chat and AI agent message dispatching. It is designed as an easier and safer way to run private agent-to-human or agent-to-agent communication on infrastructure you control, instead of depending on public messaging services such as Telegram, Discord, or WeChat. The repository includes a WebSocket server, a reusable client library, a .NET MAUI UI client, shared message contracts, and an automated server test suite.
