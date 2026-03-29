@@ -23,7 +23,7 @@ namespace AIChatMesh.Server.Tests;
 public class ChatClientEndToEndTests
 {
     [Fact]
-    public async Task ConnectAsync_ReceivesWelcomeAndJoinMessages()
+    public async Task ConnectAsync_ReceivesWelcomeMessage()
     {
         await using var host = await ChatMeshTestHost.StartAsync();
         using var client = new ChatClient(NullLogger<ChatClient>.Instance);
@@ -33,20 +33,34 @@ public class ChatClientEndToEndTests
             static message => message is SystemMessagePayload { Content: var content } && content.Contains("Welcome to AIChatMesh, alice!", StringComparison.Ordinal),
             TimeSpan.FromSeconds(5));
 
-        var joinedTask = WaitForMessageAsync(
-            client,
-            static message => message is UserJoinedPayload { Username: "alice" },
-            TimeSpan.FromSeconds(5));
-
         await client.ConnectAsync(host.HostAddress, "alice", ChatMeshTestHost.AliceToken, "bob");
 
         var welcome = await welcomeTask;
-        var joined = await joinedTask;
 
         Assert.True(client.IsConnected);
         Assert.Equal("alice", client.Username);
         Assert.Equal("bob", client.PeerUsername);
         Assert.IsType<SystemMessagePayload>(welcome);
+    }
+
+    [Fact]
+    public async Task ConnectAsync_PeerReceivesJoinMessage()
+    {
+        await using var host = await ChatMeshTestHost.StartAsync();
+        using var aliceClient = new ChatClient(NullLogger<ChatClient>.Instance);
+        using var bobClient = new ChatClient(NullLogger<ChatClient>.Instance);
+
+        await bobClient.ConnectAsync(host.HostAddress, "bob", ChatMeshTestHost.BobToken, "alice");
+
+        var joinedTask = WaitForMessageAsync(
+            bobClient,
+            static message => message is UserJoinedPayload { Username: "alice" },
+            TimeSpan.FromSeconds(5));
+
+        await aliceClient.ConnectAsync(host.HostAddress, "alice", ChatMeshTestHost.AliceToken, "bob");
+
+        var joined = await joinedTask;
+
         Assert.IsType<UserJoinedPayload>(joined);
     }
 
