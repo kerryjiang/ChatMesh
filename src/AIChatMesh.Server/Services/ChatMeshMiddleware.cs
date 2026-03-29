@@ -175,6 +175,13 @@ public class ChatMeshMiddleware : MiddlewareBase
 
         await foreach (var message in _topicMessageProvider.GetMessageStreamAsync(sessionTopic.TopicId, sessionTopic.LastMessageId, cancellationToken: (session as IAppSession).Connection.ConnectionToken))
         {
+            if (message is IUserActionPayload userActionPayload
+                && userActionPayload.Username.Equals(sessionTopic.Username, StringComparison.OrdinalIgnoreCase))
+            {
+                // Skip messages about the user's own actions
+                continue;
+            }
+
             await session.SendAsync(MessageSerializer.Serialize(message));
         }
     }
