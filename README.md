@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/chatmesh-logo.svg" alt="ChatMesh logo" width="320" />
+</p>
+
 # ChatMesh
 
 ChatMesh is a real-time messaging system built on .NET for peer chat and AI agent message dispatching. It is designed as an easier and safer way to run private agent-to-human or agent-to-agent communication on infrastructure you control, instead of depending on public messaging services such as Telegram, Discord, or WeChat. The repository includes a WebSocket server, a reusable client library, a .NET MAUI UI client, shared message contracts, and an automated server test suite.
@@ -52,6 +56,17 @@ ChatMesh is structured around targeted conversations routed through a central We
 
 - `tools/GenHash`
   Small helper for generating a salted token hash entry.
+
+## Branding Assets
+
+- `assets/chatmesh-logo.svg`
+  Primary ChatMesh logo for repository and documentation use.
+
+- `src/ChatMesh.MauiClient/Resources/AppIcon/appicon.svg`
+  MAUI app icon background layer.
+
+- `src/ChatMesh.MauiClient/Resources/AppIcon/appiconfg.svg`
+  MAUI app icon foreground layer generated from the ChatMesh logo mark.
 
 ## Solution Layout
 
