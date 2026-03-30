@@ -61,4 +61,7 @@
            <circle cx="243" cy="275" r="8" />
         </g>
     </g>
+    <text x="228" y="415" font-family="system-ui, -apple-system, sans-serif" font-weight="850" font-size="70" text-anchor="middle" letter-spacing="-2">
+        <tspan fill="#1E293B">Chat</tspan><tspan fill="#3B82F6">Mesh</tspan>
+    </text>
 </svg>
