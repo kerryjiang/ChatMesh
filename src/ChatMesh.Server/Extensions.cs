@@ -4,7 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using SuperSocket.Server.Abstractions.Host;
+using SuperSocket.Server.Abstractions.Middleware;
 using SuperSocket.WebSocket;
+using SuperSocket.WebSocket.Server;
 
 namespace ChatMesh.Server;
 
@@ -30,6 +32,7 @@ public static class Extensions
                 services.Configure<AuthConfig>(context.Configuration.GetSection("Auth"));
                 services.TryAddSingleton<IAuthenticationService, TokenService>();
                 services.TryAddSingleton<ITopicMessageProvider, InMemoryTopicMessageProvider>();
+                services.TryAddSingleton<IWebSocketCommandMiddleware>(sp => sp.GetServices<IMiddleware>().OfType<ChatMeshMiddleware>().First());
             });
         return builder;
     }

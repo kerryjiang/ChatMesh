@@ -7,38 +7,47 @@ namespace ChatMesh.Server;
 
 public class InMemoryTopicMessageProvider : ITopicMessageProvider
 {
-    private readonly ConcurrentDictionary<int, List<MessagePayload>> _messagesByTopic = new();
-
-    private readonly ConcurrentDictionary<int, List<TaskCompletionSource<MessagePayload>>> _waitingClientsByTopic = new();
-
-    private readonly ConcurrentDictionary<int, long> _lastMessageIdByTopic = new();
-
-    private async Task StartMessageWaiting(int topicId, CancellationToken cancellationToken)
-    {
-        var taskCompletionSource = new TaskCompletionSource<MessagePayload>();
-        _waitingClientsByTopic.AddOrUpdate(topicId, _ => new List<TaskCompletionSource<MessagePayload>> { taskCompletionSource }, (key, oldValue) => { oldValue.Add(taskCompletionSource); return oldValue; });
-        await taskCompletionSource.Task.WaitAsync(cancellationToken);
-    }
+    private readonly ConcurrentDictionary<int, TopicState> _topics = new();
 
     public async IAsyncEnumerable<MessagePayload> GetMessageStreamAsync(int topicId, long? lastReceivedMessageId, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
+        var topicState = _topics.GetOrAdd(topicId, static _ => new TopicState());
         var currentLastMessageId = lastReceivedMessageId;
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            if (!_messagesByTopic.TryGetValue(topicId, out var messages) || messages is null || !messages.Any())
-            {
-                await StartMessageWaiting(topicId, cancellationToken);
-                continue;
-            }
+            MessagePayload[] newMessages;
+            TaskCompletionSource<bool>? waiter = null;
 
-            var newMessages = messages
-                .Where(message => currentLastMessageId is null || message.Id > currentLastMessageId.Value)
-                .ToArray();
+            lock (topicState.SyncRoot)
+            {
+                newMessages = topicState.Messages
+                    .Where(message => currentLastMessageId is null || message.Id > currentLastMessageId.Value)
+                    .ToArray();
+
+                if (newMessages.Length == 0)
+                {
+                    waiter = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    topicState.Waiters.Add(waiter);
+                }
+            }
 
             if (newMessages.Length == 0)
             {
-                await StartMessageWaiting(topicId, cancellationToken);
+                try
+                {
+                    await waiter!.Task.WaitAsync(cancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    lock (topicState.SyncRoot)
+                    {
+                        topicState.Waiters.Remove(waiter!);
+                    }
+
+                    yield break;
+                }
+
                 continue;
             }
 
@@ -55,26 +64,33 @@ public class InMemoryTopicMessageProvider : ITopicMessageProvider
 
     public Task SaveMessageAsync(int topicId, MessagePayload message, CancellationToken cancellationToken = default)
     {
-        message.Id = _lastMessageIdByTopic.AddOrUpdate(topicId, 1, static (_, current) => current + 1);
+        var topicState = _topics.GetOrAdd(topicId, static _ => new TopicState());
+        TaskCompletionSource<bool>[] waiters;
 
-        if (!_messagesByTopic.TryGetValue(topicId, out var messages))
+        lock (topicState.SyncRoot)
         {
-            _messagesByTopic.TryAdd(topicId, new List<MessagePayload>());
-            messages = _messagesByTopic[topicId];
+            message.Id = ++topicState.LastMessageId;
+            topicState.Messages.Add(message);
+            waiters = topicState.Waiters.ToArray();
+            topicState.Waiters.Clear();
         }
 
-        messages.Add(message);
-
-        _waitingClientsByTopic.TryRemove(topicId, out var waitingClients);
-
-        if (waitingClients != null)
+        foreach (var waiter in waiters)
         {
-            foreach (var client in waitingClients)
-            {
-                client.TrySetResult(message);
-            }
+            waiter.TrySetResult(true);
         }
 
         return Task.CompletedTask;
+    }
+
+    private sealed class TopicState
+    {
+        public object SyncRoot { get; } = new();
+
+        public List<MessagePayload> Messages { get; } = [];
+
+        public List<TaskCompletionSource<bool>> Waiters { get; } = [];
+
+        public long LastMessageId { get; set; }
     }
 }

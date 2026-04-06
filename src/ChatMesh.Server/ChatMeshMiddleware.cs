@@ -157,6 +157,7 @@ public class ChatMeshMiddleware : MiddlewareBase, IWebSocketCommandMiddleware, I
             {
                 Sender = sessionTopic.Username,
                 Content = chatMsg.Content,
+                Encypted = chatMsg.Encypted,
                 Timestamp = DateTimeOffset.UtcNow
             };
 
