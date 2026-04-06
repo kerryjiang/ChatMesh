@@ -2,14 +2,15 @@ using ChatMesh.Contract;
 using ChatMesh.Server.Abstractions;
 using ChatMesh.Server.Models;
 using Microsoft.Extensions.Logging;
+using SuperSocket.Server.Abstractions;
 using SuperSocket.Server.Abstractions.Middleware;
 using SuperSocket.Server.Abstractions.Session;
 using SuperSocket.WebSocket;
 using SuperSocket.WebSocket.Server;
 
-namespace ChatMesh.Server.Services;
+namespace ChatMesh.Server;
 
-public class ChatMeshMiddleware : MiddlewareBase
+public class ChatMeshMiddleware : MiddlewareBase, IWebSocketCommandMiddleware, IPackageHandler<WebSocketPackage>
 {
     private readonly ITopicMessageProvider _topicMessageProvider;
 
@@ -118,10 +119,12 @@ public class ChatMeshMiddleware : MiddlewareBase
         return true;
     }
 
-    internal async ValueTask HandlePackageAsync(WebSocketSession session, WebSocketPackage package)
+    public async ValueTask Handle(IAppSession session, WebSocketPackage package, CancellationToken cancellationToken)
     {
         if (package.OpCode != OpCode.Text || string.IsNullOrEmpty(package.Message))
             return;
+
+        var webSocketSession = (WebSocketSession)session;
 
         var sessionTopic = session.DataContext as SessionTopic;
 
@@ -158,10 +161,10 @@ public class ChatMeshMiddleware : MiddlewareBase
             };
 
             // Route to the sender's peer, only if the peer has the sender as their peer
-            await _topicMessageProvider.SaveMessageAsync(sessionTopic.TopicId, outgoing, (session as IAppSession).Connection.ConnectionToken);
+            await _topicMessageProvider.SaveMessageAsync(sessionTopic.TopicId, outgoing, session.Connection.ConnectionToken);
 
             // Also echo back to sender
-            await session.SendAsync(MessageSerializer.Serialize(outgoing));
+            await webSocketSession.SendAsync(MessageSerializer.Serialize(outgoing));
         }
     }
 
@@ -227,5 +230,4 @@ public class ChatMeshMiddleware : MiddlewareBase
 
         return headers;
     }
-
 }

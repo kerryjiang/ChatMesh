@@ -3,7 +3,7 @@ using System.Runtime.CompilerServices;
 using ChatMesh.Contract;
 using ChatMesh.Server.Abstractions;
 
-namespace ChatMesh.Server.Services;
+namespace ChatMesh.Server;
 
 public class InMemoryTopicMessageProvider : ITopicMessageProvider
 {

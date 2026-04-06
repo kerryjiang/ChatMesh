@@ -4,7 +4,7 @@ using ChatMesh.Server.Abstractions;
 using ChatMesh.Server.Models;
 using Microsoft.Extensions.Options;
 
-namespace ChatMesh.Server.Services;
+namespace ChatMesh.Server;
 
 public sealed class TokenService : IAuthenticationService
 {
