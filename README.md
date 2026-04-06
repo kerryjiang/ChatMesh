@@ -15,6 +15,7 @@ ChatMesh is structured around targeted conversations routed through a central We
 - Each client connects with a `peerUsername`, and the server only routes that conversation's messages.
 - Message payloads are JSON serialized and include system, chat, join, and leave events.
 - Chat messages can optionally be encrypted end-to-end between two peers with a shared message encryption key.
+- Clients reconnect with `lastMessageId` so unread conversation messages can resume without replaying already-read ones.
 - The same routing model can be used for user chat, AI agent dispatching, or hybrid user/agent communication.
 - You can deploy your own private communication server and keep agent traffic within your own environment.
 
@@ -37,7 +38,10 @@ ChatMesh is structured around targeted conversations routed through a central We
 ## Projects
 
 - `src/ChatMesh.Server`
-  WebSocket host built on `SuperSocket.WebSocket.Server`.
+  Server middleware and message routing implementation.
+
+- `src/ChatMeshServer`
+  Executable WebSocket host built on `SuperSocket.WebSocket.Server`.
 
 - `src/ChatMesh.Client`
   Reusable .NET client library for connecting, dispatching messages, and receiving payloads.
@@ -80,6 +84,7 @@ src/
   ChatMesh.MauiClient/
   ChatMesh.Server/
   ChatMesh.Server.Abstractions/
+  ChatMeshServer/
 tests/
   ChatMesh.Server.Tests/
 tools/
@@ -90,11 +95,13 @@ tools/
 
 ### Server
 
-The server entry point is in `src/ChatMesh.Server/Program.cs`.
+The server entry point is in `src/ChatMeshServer/Program.cs`.
 
 - Uses `Host.CreateDefaultBuilder(args)` and SuperSocket WebSocket hosting.
-- Registers `ChatMeshMiddleware` for authentication, welcome messages, routing, and session lifecycle handling.
-- Stores authentication users in `appsettings.json` under the `Auth` section.
+- Uses `ChatMesh.Server` as the reusable server library and `src/ChatMeshServer` as the runnable host.
+- Registers `ChatMeshMiddleware` for authentication, incoming WebSocket message handling, routing, and session lifecycle handling.
+- Stores authentication users in `src/ChatMeshServer/appsettings.json` under the `Auth` section.
+- Uses an in-memory topic provider that preserves ordered message IDs and supports reconnecting clients resuming from the last message they already processed.
 
 ### Client Library
 
@@ -104,8 +111,9 @@ The reusable client is `ChatMesh.Client.ChatClient`.
 - Sends `username`, `token`, `peerUsername`, and optional `lastMessageId` as query parameters.
 - Accepts an optional message encryption key during connect.
 - Raises `MessageReceived` and `ConnectionStateChanged` events.
-- Tracks the last received message ID to support reconnect without replaying already-read chat messages.
+- Tracks the last received message ID per conversation to support reconnect without replaying already-read messages.
 - Encrypts `ChatMessagePayload.Content` before send and decrypts it after receive when a shared message encryption key is configured.
+- Preserves the `ChatMessagePayload.Encypted` flag across delivery so both sender and peer can correctly decrypt transported content.
 - Can be used as a transport client for AI agents exchanging addressed messages over the ChatMesh server.
 
 ### MAUI App
@@ -120,7 +128,7 @@ The MAUI app exposes a simple operator-facing chat experience.
 
 Authentication is token-based.
 
-- The server compares the provided token against a salted hash in `src/ChatMesh.Server/appsettings.json`.
+- The server compares the provided token against a salted hash in `src/ChatMeshServer/appsettings.json`.
 - The repository configuration includes users such as `alice`, `bob`, and `TradeAgent`.
 - Plaintext tokens are not stored in server configuration.
 
@@ -170,22 +178,16 @@ The MAUI project uses:
 
 ## Build and Test
 
-Restore and build the server-side projects:
+Restore and build the solution:
 
 ```bash
-dotnet build tests/ChatMesh.Server.Tests/ChatMesh.Server.Tests.csproj
+dotnet build ChatMesh.slnx
 ```
 
-Run the test suite:
+Build the runnable server host:
 
 ```bash
-dotnet test tests/ChatMesh.Server.Tests/ChatMesh.Server.Tests.csproj
-```
-
-Build the MAUI client for Mac Catalyst on macOS:
-
-```bash
-dotnet build src/ChatMesh.MauiClient/ChatMesh.MauiClient.csproj -f net10.0-maccatalyst
+dotnet build src/ChatMeshServer/ChatMeshServer.csproj
 ```
 
 Build the reusable client library:
@@ -194,10 +196,24 @@ Build the reusable client library:
 dotnet build src/ChatMesh.Client/ChatMesh.Client.csproj
 ```
 
+Run the test suite:
+
+```bash
+dotnet test tests/ChatMesh.Server.Tests/ChatMesh.Server.Tests.csproj
+```
+
+The automated server tests cover authentication, message serialization, in-memory topic delivery, send/echo behavior, encrypted chat delivery, and reconnect without replaying already-read messages.
+
+Build the MAUI client for Mac Catalyst on macOS:
+
+```bash
+dotnet build src/ChatMesh.MauiClient/ChatMesh.MauiClient.csproj -f net10.0-maccatalyst
+```
+
 Run the server:
 
 ```bash
-dotnet run --project src/ChatMesh.Server/ChatMesh.Server.csproj
+dotnet run --project src/ChatMeshServer/ChatMeshServer.csproj
 ```
 
 ## Running the App
@@ -252,7 +268,7 @@ If you want different input values, update `tools/GenHash/Program.cs` accordingl
 
 ## Known Notes
 
-- End-to-end server tests currently pass, but you may still see expected teardown-time WebSocket logging noise from `ChatMeshMiddleware` when sessions close.
+- End-to-end server tests currently pass, including send/echo, encrypted delivery, and reconnect cursor behavior.
 - The repository root folder can still be named `AIChatMesh` locally even though the solution and projects are now named `ChatMesh`.
 
 ## Development Notes
