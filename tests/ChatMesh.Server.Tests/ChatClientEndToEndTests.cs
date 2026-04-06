@@ -5,7 +5,6 @@ using ChatMesh.Client;
 using ChatMesh.Contract;
 using ChatMesh.Server.Abstractions;
 using ChatMesh.Server.Models;
-using ChatMesh.Server.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -294,7 +293,10 @@ public class ChatClientEndToEndTests
 
             var host = Host.CreateDefaultBuilder()
                 .AsWebSocketHostBuilder()
-                .UseMiddleware<ChatMeshMiddleware>()
+                .UseChatMeshServer((context, services) =>
+                {
+                    services.AddSingleton<IOptions<AuthConfig>>(Options.Create(authConfig));
+                })
                 .ConfigureSuperSocket(options =>
                 {
                     options.Name = "ChatMesh.Tests";
@@ -303,21 +305,6 @@ public class ChatClientEndToEndTests
                         Ip = "Any",
                         Port = port
                     });
-                })
-                .UseWebSocketMessageHandler(async (session, package) =>
-                {
-                    if (package.OpCode != OpCode.Text || string.IsNullOrEmpty(package.Message))
-                        return;
-
-                    var services = (session as IAppSession)!.Server.ServiceProvider;
-                    var middleware = services.GetServices<IMiddleware>().OfType<ChatMeshMiddleware>().First();
-                    await middleware.HandlePackageAsync(session, package);
-                })
-                .ConfigureServices(services =>
-                {
-                    services.AddSingleton<IOptions<AuthConfig>>(Options.Create(authConfig));
-                    services.AddSingleton<IAuthenticationService, TokenService>();
-                    services.AddSingleton<ITopicMessageProvider, InMemoryTopicMessageProvider>();
                 })
                 .Build();
 

@@ -2,6 +2,7 @@ using ChatMesh.Server.Abstractions;
 using ChatMesh.Server.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using SuperSocket.Server.Abstractions.Host;
 using SuperSocket.WebSocket;
 
@@ -16,13 +17,16 @@ public static class Extensions
     /// Adds the ChatMesh server middleware and related services to the specified <see cref="ISuperSocketHostBuilder{WebSocketPackage}"/>.
     /// </summary>
     /// <param name="builder">The <see cref="ISuperSocketHostBuilder{WebSocketPackage}"/> to configure.</param>
+    /// <param name="configureServices">An optional action to further configure the services.</param>
     /// <returns>The configured <see cref="ISuperSocketHostBuilder{WebSocketPackage}"/>.</returns>
-    public static ISuperSocketHostBuilder<WebSocketPackage> UseChatMeshServer(this ISuperSocketHostBuilder<WebSocketPackage> builder)
+    public static ISuperSocketHostBuilder<WebSocketPackage> UseChatMeshServer(this ISuperSocketHostBuilder<WebSocketPackage> builder, Action<HostBuilderContext, IServiceCollection>? configureServices = null)
     {
         builder
             .UseMiddleware<ChatMeshMiddleware>()
             .ConfigureServices((context, services) =>
             {
+                configureServices?.Invoke(context, services);
+
                 services.Configure<AuthConfig>(context.Configuration.GetSection("Auth"));
                 services.TryAddSingleton<IAuthenticationService, TokenService>();
                 services.TryAddSingleton<ITopicMessageProvider, InMemoryTopicMessageProvider>();

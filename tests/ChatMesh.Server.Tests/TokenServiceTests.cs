@@ -1,6 +1,5 @@
 using ChatMesh.Server.Abstractions;
 using ChatMesh.Server.Models;
-using ChatMesh.Server.Services;
 using Microsoft.Extensions.Options;
 
 namespace ChatMesh.Server.Tests;

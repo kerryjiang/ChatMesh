@@ -1,5 +1,4 @@
 using ChatMesh.Contract;
-using ChatMesh.Server.Services;
 
 namespace ChatMesh.Server.Tests;
 
