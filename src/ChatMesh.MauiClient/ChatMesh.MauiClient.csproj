@@ -5,6 +5,7 @@
 
 		<!-- Allow building with newer Xcode than the SDK strictly expects -->
 		<ValidateXcodeVersion>false</ValidateXcodeVersion>
+		<IsPackable>false</IsPackable>
 
 		<!-- Note for MacCatalyst:
 		The default runtime is maccatalyst-x64, except in Release config, in which case the default is maccatalyst-x64;maccatalyst-arm64.
