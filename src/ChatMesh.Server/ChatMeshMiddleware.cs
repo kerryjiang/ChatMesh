@@ -163,12 +163,8 @@ public class ChatMeshMiddleware : MiddlewareBase, IWebSocketCommandMiddleware, I
 
             // Route to the sender's peer, only if the peer has the sender as their peer
             await _topicMessageProvider.SaveMessageAsync(sessionTopic.TopicId, outgoing, session.Connection.ConnectionToken);
-
-            // Also echo back to sender
-            await webSocketSession.SendAsync(MessageSerializer.Serialize(outgoing));
         }
     }
-
 
     private async Task StartSessionChatMeshAsync(WebSocketSession session)
     {

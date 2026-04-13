@@ -1,4 +1,5 @@
 ﻿using ChatMesh.Client;
+using ChatMesh.MauiClient.Controls;
 using ChatMesh.MauiClient.Pages;
 using ChatMesh.MauiClient.ViewModels;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,8 @@ public static class MauiProgram
 				fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
 				fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
 			});
+
+		MessageEditorConfiguration.Configure();
 
 		builder.Services.AddSingleton<ChatClient>();
 		builder.Services.AddTransient<ChatPageViewModel>();
